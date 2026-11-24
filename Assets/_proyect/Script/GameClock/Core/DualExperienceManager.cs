@@ -2,6 +2,8 @@ using System.Collections;
 using Unity.XR.CoreUtils;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.XR.Interaction.Toolkit;
+using UnityEngine.XR.Interaction.Toolkit.Interactors;
 
 namespace Tape0317.Core
 {
@@ -46,6 +48,7 @@ namespace Tape0317.Core
 
         public bool InTape { get; private set; }
         bool busy;
+        XRInteractionManager interactionManager;
 
         void Reset()
         {
@@ -57,6 +60,8 @@ namespace Tape0317.Core
 
         void Awake()
         {
+            interactionManager = FindFirstObjectByType<XRInteractionManager>();
+
             // Estado inicial garantizado aunque en el editor quedaran los dos activos.
             if (presentWorld != null) presentWorld.SetActive(true);
             if (pastWorld != null) pastWorld.SetActive(false);
@@ -97,6 +102,8 @@ namespace Tape0317.Core
             if (clock != null)
                 clock.Pause();
 
+            // Suelta lo que el jugador tenga en las manos ANTES de apagar el mundo (ver ReleaseHeldObjects).
+            ReleaseHeldObjects();
             SwapWorlds(toPast: true);
             Teleport(pastSpawn);
             InTape = true;
@@ -117,6 +124,7 @@ namespace Tape0317.Core
             if (fader != null)
                 yield return fader.FadeOut();
 
+            ReleaseHeldObjects();
             SwapWorlds(toPast: false);
             Teleport(presentReturnPoint);
             InTape = false;
@@ -136,6 +144,28 @@ namespace Tape0317.Core
                 director.NotifyTapeWatched();
 
             busy = false;
+        }
+
+        /// <summary>
+        /// Obliga al jugador a soltar todo lo que tenga agarrado.
+        ///
+        /// Por qué: mientras un objeto está agarrado, XRI lo saca de su carpeta (ej. Pasado_cinta) y lo deja
+        /// suelto en la raíz de la escena. Si apagamos el mundo así, el objeto NO se apaga con él y el
+        /// jugador "se lo lleva" al otro mundo. Al soltarlo aquí, con el mundo todavía activo, XRI lo
+        /// devuelve a su carpeta (Retain Transform Parent) y después se apaga junto con ella.
+        /// Funciona con cualquier objeto agarrable, sin conectar eventos a mano.
+        /// </summary>
+        void ReleaseHeldObjects()
+        {
+            if (interactionManager == null || xrOrigin == null)
+                return;
+
+            // Todos los "agarradores" del jugador: mano izquierda, derecha, rayos, poke...
+            foreach (IXRSelectInteractor interactor in xrOrigin.GetComponentsInChildren<IXRSelectInteractor>())
+            {
+                if (interactor.hasSelection)
+                    interactionManager.CancelInteractorSelection(interactor);
+            }
         }
 
         void SwapWorlds(bool toPast)
