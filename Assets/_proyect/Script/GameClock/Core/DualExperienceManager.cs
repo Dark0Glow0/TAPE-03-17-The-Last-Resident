@@ -122,6 +122,11 @@ namespace Tape0317.Core
             InTape = false;
             onReturnToPresent?.Invoke();
 
+            yield return new WaitForSeconds(blackHoldSeconds);
+
+            if (fader != null)
+                yield return fader.FadeIn();
+
             // ORDEN IMPORTANTE: primero reanudamos el reloj y DESPUÉS avisamos que se vio la cinta.
             // NotifyTapeWatched salta a las 03:17 y ahí el director vuelve a pausar el reloj;
             // si lo hiciéramos al revés, este Resume lo volvería a poner en marcha.
@@ -129,11 +134,6 @@ namespace Tape0317.Core
                 clock.Resume();
             if (director != null)
                 director.NotifyTapeWatched();
-
-            yield return new WaitForSeconds(blackHoldSeconds);
-
-            if (fader != null)
-                yield return fader.FadeIn();
 
             busy = false;
         }

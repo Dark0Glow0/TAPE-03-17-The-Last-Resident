@@ -16,6 +16,7 @@ namespace Tape0317.Tape
         {
             // Invoke es más simple que una corrutina para "llamar a X dentro de N segundos".
             Invoke(nameof(Hide), seconds);
+            Debug.Log("aparece");
         }
 
         void OnDisable()
@@ -23,6 +24,7 @@ namespace Tape0317.Tape
             // Si alguien lo desactiva antes de tiempo, cancelamos la llamada pendiente
             // para que no se ejecute la próxima vez que se active.
             CancelInvoke(nameof(Hide));
+            Debug.Log("se va");
         }
 
         void Hide() => gameObject.SetActive(false);
