@@ -6,44 +6,48 @@ namespace Tape0317.Core
 {
     public enum NightPhase
     {
-        Calm,           // 02:45 → 03:17: explorar, encontrar y ver la cinta
-        Manifestation,  // 03:17 → 03:30: empiezan las cosas raras
-        Hunt            // 03:30 →     : el Mimic caza (solo si NO se vio la cinta)
+        Calm,        // 08:00 → 03:17: explorar la casa, encontrar la cinta y jugarla
+        Revelation,  // 03:17 CON la cinta vista: susto "guionizado" y fin de la demo
+        Attack,      // 03:17 SIN la cinta vista: el Mimic entra y te atrapa
+        Death        // el Mimic te atrapó → pantalla de derrota
     }
 
     /// <summary>
-    /// Traduce la hora del GameClock a fases de la noche y avisa cuando cambia la fase.
-    /// Los demás sistemas (Mimic, radio, luces, sonidos) escuchan OnPhaseChanged y reaccionan.
+    /// Decide qué pasa a las 03:17 según si el jugador vio la cinta o no.
+    /// No hace sustos: solo cambia de fase y avisa. Quien reacciona es otro script
+    /// (MimicAttackSequence, la pantalla final, etc.).
     ///
-    /// Regla de la cinta:
-    ///  - Si el jugador ve la cinta ANTES de las 03:17 → el reloj salta a 03:17 y la manifestación
-    ///    es "guionizada" (TapeWatched = true). Nunca llega la caza.
-    ///  - Si llegan las 03:17 sin verla → manifestación hostil y a las 03:30 empieza la caza.
+    /// Reglas (MVP, versión simple):
+    ///  - Ver la cinta ANTES de las 03:17 → al volver, el reloj salta a 03:17 → Revelation.
+    ///  - Llegar a las 03:17 SIN verla → Attack → el Mimic entra y llama a KillPlayer() → Death.
+    ///  - A las 03:17 el reloj se detiene en ambos casos: la noche "terminó".
     /// </summary>
     public class NightDirector : MonoBehaviour
     {
         [SerializeField] GameClock clock;
 
-        [Header("Horario de fases")]
-        [SerializeField, Range(0, 23)] int manifestationHour = 3;
-        [SerializeField, Range(0, 59)] int manifestationMinute = 17;
-        [SerializeField, Range(0, 23)] int huntHour = 3;
-        [SerializeField, Range(0, 59)] int huntMinute = 30;
+        [Header("La hora maldita")]
+        [SerializeField, Range(0, 23)] int cursedHour = 3;
+        [SerializeField, Range(0, 59)] int cursedMinute = 17;
 
-        [Header("Eventos para conectar desde el Inspector (útil para probar rápido)")]
-        [SerializeField] UnityEvent onManifestationStarted;
-        [SerializeField] UnityEvent onHuntStarted;
+        [Header("Cinta")]
+        [Tooltip("Si está activo y la cinta se ve antes de las 03:17, al volver el reloj salta " +
+                 "directo a las 03:17 (corte narrativo). Si no, la jornada sigue hasta esa hora.")]
+        [SerializeField] bool jumpToCursedHourOnTapeWatched = true;
 
-        /// <summary>Para código: (nueva fase). Los listeners pueden consultar TapeWatched.</summary>
+        [Header("Eventos para conectar desde el Inspector")]
+        [Tooltip("03:17 habiendo visto la cinta: Mimic en la ventana, pantalla '1/7', etc.")]
+        [SerializeField] UnityEvent onRevelation;
+        [Tooltip("03:17 sin haber visto la cinta. El MimicAttackSequence ya escucha esto por código.")]
+        [SerializeField] UnityEvent onAttackStarted;
+        [Tooltip("El Mimic atrapó al jugador: pantalla de muerte / 'STOP' de VHS.")]
+        [SerializeField] UnityEvent onPlayerDied;
+
+        /// <summary>Para código: (nueva fase).</summary>
         public event Action<NightPhase> OnPhaseChanged;
 
         public NightPhase CurrentPhase { get; private set; } = NightPhase.Calm;
-
-        /// <summary>True si el jugador vio la cinta. Cambia el tono de la manifestación y anula la caza.</summary>
         public bool TapeWatched { get; private set; }
-
-        /// <summary>Atajo para el Mimic: ¿la noche es peligrosa ahora mismo?</summary>
-        public bool IsHostile => CurrentPhase != NightPhase.Calm && !TapeWatched;
 
         void Reset() => clock = FindFirstObjectByType<GameClock>();
 
@@ -59,64 +63,72 @@ namespace Tape0317.Core
                 clock.OnMinuteChanged -= HandleMinuteChanged;
         }
 
+        // ---------- API pública ----------
+
         /// <summary>
-        /// Lo llamará el VHSPlayer / GameManager cuando la cinta termine de reproducirse.
+        /// Lo llamará el DualExperienceManager cuando el jugador termine la experiencia de la cinta
+        /// y vuelva a la casa. Solo cuenta si todavía no son las 03:17.
         /// </summary>
         public void NotifyTapeWatched()
         {
-            if (TapeWatched)
+            if (TapeWatched || CurrentPhase != NightPhase.Calm)
                 return;
 
             TapeWatched = true;
+            Debug.Log("[NightDirector] Cinta vista a tiempo");
 
-            // Si aún no eran las 03:17, la cinta "se corta" y el reloj salta a esa hora.
-            // SetTime lanza OnMinuteChanged → HandleMinuteChanged → pasamos a Manifestation.
-            if (CurrentPhase == NightPhase.Calm)
-                clock.SetTime(manifestationHour, manifestationMinute);
+            // SetTime lanza OnMinuteChanged(3,17) → HandleMinuteChanged → Revelation.
+            if (jumpToCursedHourOnTapeWatched)
+                clock.SetTime(cursedHour, cursedMinute);
         }
+
+        /// <summary>Lo llama el Mimic cuando atrapa al jugador. Solo tiene efecto durante el ataque.</summary>
+        public void KillPlayer()
+        {
+            if (CurrentPhase == NightPhase.Attack)
+                SetPhase(NightPhase.Death);
+        }
+
+        // ---------- Lógica interna ----------
 
         void HandleMinuteChanged(int hour, int minute)
         {
-            int now = GameClock.ToMinutes(hour, minute);
-            NightPhase target = EvaluatePhase(now);
+            if (CurrentPhase != NightPhase.Calm)
+                return;
 
-            // Solo avanzamos de fase, nunca retrocedemos (la noche no "se calma" sola).
-            if (target > CurrentPhase)
-                SetPhase(target);
-        }
+            // Minutos de línea de tiempo: así 03:17 (del día siguiente) es MAYOR que 20:00.
+            int now = clock.ToTimelineMinutes(hour, minute);
+            int cursed = clock.ToTimelineMinutes(cursedHour, cursedMinute);
 
-        NightPhase EvaluatePhase(int now)
-        {
-            int manifestation = GameClock.ToMinutes(manifestationHour, manifestationMinute);
-            int hunt = GameClock.ToMinutes(huntHour, huntMinute);
-
-            // La caza solo existe si el jugador NO vio la cinta.
-            if (now >= hunt && !TapeWatched)
-                return NightPhase.Hunt;
-
-            if (now >= manifestation)
-                return NightPhase.Manifestation;
-
-            return NightPhase.Calm;
+            if (now >= cursed)
+            {
+                // La noche se detiene a las 03:17 pase lo que pase.
+                clock.Pause();
+                SetPhase(TapeWatched ? NightPhase.Revelation : NightPhase.Attack);
+            }
         }
 
         void SetPhase(NightPhase phase)
         {
             CurrentPhase = phase;
-            Debug.Log($"[NightDirector] Fase: {phase} (cinta vista: {TapeWatched})");
+            Debug.Log($"[NightDirector] Fase: {phase}");
 
             OnPhaseChanged?.Invoke(phase);
 
             switch (phase)
             {
-                case NightPhase.Manifestation: onManifestationStarted?.Invoke(); break;
-                case NightPhase.Hunt: onHuntStarted?.Invoke(); break;
+                case NightPhase.Revelation: onRevelation?.Invoke(); break;
+                case NightPhase.Attack: onAttackStarted?.Invoke(); break;
+                case NightPhase.Death: onPlayerDied?.Invoke(); break;
             }
         }
 
-        // ---------- Depuración ----------
+        // ---------- Depuración (clic derecho sobre el componente en el Inspector) ----------
 
         [ContextMenu("Debug/Simular cinta vista")]
         void DebugTapeWatched() => NotifyTapeWatched();
+
+        [ContextMenu("Debug/Simular atrapado por el Mimic")]
+        void DebugKillPlayer() => KillPlayer();
     }
 }
