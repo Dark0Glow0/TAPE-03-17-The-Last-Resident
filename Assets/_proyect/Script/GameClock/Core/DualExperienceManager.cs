@@ -176,11 +176,6 @@ namespace Tape0317.Core
                 foreach (UnityEngine.XR.Interaction.Toolkit.Interactables.IXRSelectInteractable selected in interactor.interactablesSelected)
                     held.Add(selected.transform);
 
-            // DEBUG: qué tenía en las manos (borrar cuando funcione)
-            Debug.Log($"[Dual] Soltando {held.Count} objeto(s). Interactores revisados: {interactors.Length}");
-            foreach (Transform t in held)
-                Debug.Log($"[Dual]  - tenía: {t.name} (padre: {(t.parent ? t.parent.name : "RAÍZ")})");
-
             // 2) Lo soltamos. (Todos los "agarradores": manos, rayos, poke...)
             foreach (IXRSelectInteractor interactor in interactors)
             {
@@ -209,10 +204,6 @@ namespace Tape0317.Core
             {
                 if (t != null && t.parent == null)
                     t.SetParent(outgoingWorld.transform, worldPositionStays: true);
-
-                // DEBUG: dónde quedó (borrar cuando funcione)
-                if (t != null)
-                    Debug.Log($"[Dual]  - {t.name} quedó en: {(t.parent ? t.parent.name : "RAÍZ")}, ¿sigue agarrado? {t.GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.IXRSelectInteractable>()?.isSelected}");
             }
         }
 
