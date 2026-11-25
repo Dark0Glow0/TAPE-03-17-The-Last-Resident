@@ -151,6 +151,11 @@ namespace Tape0317.UI
             foreach (GameObject go in hideOnEnd)
                 if (go != null) go.SetActive(false);
 
+            // Por si el final llega sin haber apretado PLAY (ej. probando con los Debug):
+            // el menú de inicio está en el mismo lugar de la tele y se encimaría con el final.
+            if (startMenu != null)
+                startMenu.SetActive(false);
+
             TeleportTo(tvSpawn);
 
             if (endTitle != null) endTitle.text = title;

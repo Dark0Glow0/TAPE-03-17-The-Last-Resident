@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using Unity.XR.CoreUtils;
 using UnityEngine;
 using UnityEngine.Events;
@@ -103,7 +104,7 @@ namespace Tape0317.Core
                 clock.Pause();
 
             // Suelta lo que el jugador tenga en las manos ANTES de apagar el mundo (ver ReleaseHeldObjects).
-            ReleaseHeldObjects();
+            ReleaseHeldObjects(presentWorld);
             SwapWorlds(toPast: true);
             Teleport(pastSpawn);
             InTape = true;
@@ -124,7 +125,7 @@ namespace Tape0317.Core
             if (fader != null)
                 yield return fader.FadeOut();
 
-            ReleaseHeldObjects();
+            ReleaseHeldObjects(pastWorld);
             SwapWorlds(toPast: false);
             Teleport(presentReturnPoint);
             InTape = false;
@@ -155,16 +156,63 @@ namespace Tape0317.Core
         /// devuelve a su carpeta (Retain Transform Parent) y después se apaga junto con ella.
         /// Funciona con cualquier objeto agarrable, sin conectar eventos a mano.
         /// </summary>
-        void ReleaseHeldObjects()
+        void ReleaseHeldObjects(GameObject outgoingWorld)
         {
-            if (interactionManager == null || xrOrigin == null)
+            if (xrOrigin == null)
+            {
+                Debug.LogWarning("[Dual] No hay XR Origin asignado: no puedo soltar lo que tiene el jugador.");
+                return;
+            }
+
+            // El XR Interaction Manager lo crea XRI en tiempo de ejecución (aparece en DontDestroyOnLoad),
+            // a veces DESPUÉS de nuestro Awake. Por eso lo buscamos aquí, en el momento de usarlo.
+            if (interactionManager == null)
+                interactionManager = FindFirstObjectByType<XRInteractionManager>();
+
+            // 1) Anotamos qué tenía el jugador en las manos.
+            var held = new List<Transform>();
+            var interactors = xrOrigin.GetComponentsInChildren<IXRSelectInteractor>();
+            foreach (IXRSelectInteractor interactor in interactors)
+                foreach (UnityEngine.XR.Interaction.Toolkit.Interactables.IXRSelectInteractable selected in interactor.interactablesSelected)
+                    held.Add(selected.transform);
+
+            // DEBUG: qué tenía en las manos (borrar cuando funcione)
+            Debug.Log($"[Dual] Soltando {held.Count} objeto(s). Interactores revisados: {interactors.Length}");
+            foreach (Transform t in held)
+                Debug.Log($"[Dual]  - tenía: {t.name} (padre: {(t.parent ? t.parent.name : "RAÍZ")})");
+
+            // 2) Lo soltamos. (Todos los "agarradores": manos, rayos, poke...)
+            foreach (IXRSelectInteractor interactor in interactors)
+            {
+                if (!interactor.hasSelection)
+                    continue;
+
+                // Si aun así no lo encontramos, usamos el manager que tiene la propia mano.
+                XRInteractionManager manager = interactionManager;
+                if (manager == null && interactor is XRBaseInteractor baseInteractor)
+                    manager = baseInteractor.interactionManager;
+
+                if (manager != null)
+                    manager.CancelInteractorSelection(interactor);
+                else
+                    Debug.LogWarning($"[Dual] No encontré XR Interaction Manager para soltar desde {interactor.transform.name}.");
+            }
+
+            // 3) A prueba de balas: XRI no siempre devuelve el objeto a su carpeta al soltarlo
+            //    (a veces lo deja suelto en la raíz de la escena). Si quedó suelto, lo metemos
+            //    nosotros en el mundo que se va a apagar, para que se apague con él y no
+            //    "viaje" con el jugador al otro mundo.
+            if (outgoingWorld == null)
                 return;
 
-            // Todos los "agarradores" del jugador: mano izquierda, derecha, rayos, poke...
-            foreach (IXRSelectInteractor interactor in xrOrigin.GetComponentsInChildren<IXRSelectInteractor>())
+            foreach (Transform t in held)
             {
-                if (interactor.hasSelection)
-                    interactionManager.CancelInteractorSelection(interactor);
+                if (t != null && t.parent == null)
+                    t.SetParent(outgoingWorld.transform, worldPositionStays: true);
+
+                // DEBUG: dónde quedó (borrar cuando funcione)
+                if (t != null)
+                    Debug.Log($"[Dual]  - {t.name} quedó en: {(t.parent ? t.parent.name : "RAÍZ")}, ¿sigue agarrado? {t.GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.IXRSelectInteractable>()?.isSelected}");
             }
         }
 
