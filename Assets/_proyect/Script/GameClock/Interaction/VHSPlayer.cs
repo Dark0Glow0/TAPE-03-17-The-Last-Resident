@@ -1,4 +1,5 @@
 using Tape0317.Core;
+using TMPro;
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactors;
@@ -6,55 +7,131 @@ using UnityEngine.XR.Interaction.Toolkit.Interactors;
 namespace Tape0317.Interaction
 {
     /// <summary>
-    /// Reproductor VHS de la casa: una ranura (socket) donde se mete la cinta y un botón de play.
-    /// Al apretar play con una cinta dentro → entramos a la cinta (DualExperienceManager).
+    /// Reproductor VHS de la casa (v2):
+    ///  1. Metes la cinta en la ranura (socket).
+    ///  2. Aprietas el BOTÓN físico → se ENCIENDE el reproductor y la tele muestra el menú VHS.
+    ///       - Con cinta:  "CINTA 01"  +  ">> REPRODUCIR"
+    ///       - Sin cinta:  "INSERTE UNA CINTA"
+    ///     Apretar el botón otra vez → se APAGA (el menú desaparece).
+    ///  3. Apuntas a REPRODUCIR con el rayo y aprietas → entras a la cinta (DualExperienceManager).
     ///
     /// Montaje:
-    ///  - Ranura: XRSocketInteractor (o el XRLockSocketInteractor de los ejemplos, que hereda de él
-    ///    y permite aceptar SOLO cintas con el sistema de Key/Keychain).
-    ///  - Botón: el PushButton de los ejemplos → en su evento On Press, llamar a VHSPlayer.PressPlay.
+    ///  - Ranura: XRSocketInteractor (ej. el SimpleSocket de los ejemplos).
+    ///  - Botón físico: PushButton de los ejemplos → On Press → VHSPlayer.PressPower.
+    ///  - Menú en la tele: un XR UI Canvas sobre la pantalla (como Menu_Inicio), DESACTIVADO, con:
+    ///       Panel_Cinta     → Texto "CINTA 01" (Tape Label) + Boton_Reproducir (On Click → VHSPlayer.PlayTape)
+    ///       Panel_SinCinta  → Texto "INSERTE UNA CINTA"
     /// </summary>
     public class VHSPlayer : MonoBehaviour
     {
         [SerializeField] XRSocketInteractor tapeSlot;
         [SerializeField] DualExperienceManager experience;
 
+        [Header("Menú en la tele")]
+        [Tooltip("Canvas del menú del reproductor (sobre la pantalla de la tele). Empieza desactivado.")]
+        [SerializeField] GameObject playerMenu;
+        [Tooltip("Lo que se muestra cuando HAY cinta (nombre + botón REPRODUCIR).")]
+        [SerializeField] GameObject tapePanel;
+        [Tooltip("Lo que se muestra cuando NO hay cinta (ej. 'INSERTE UNA CINTA').")]
+        [SerializeField] GameObject noTapePanel;
+        [Tooltip("Opcional: texto donde se escribe el nombre de la cinta.")]
+        [SerializeField] TMP_Text tapeLabel;
+        [SerializeField] string tapeName = "CINTA 01";
+
         [Header("Sonido (opcional)")]
         [SerializeField] AudioSource sfx;
         [SerializeField] AudioClip insertClip;
+        [Tooltip("El 'clac' + zumbido de la videocasetera al encenderse.")]
+        [SerializeField] AudioClip powerOnClip;
+        [SerializeField] AudioClip powerOffClip;
+        [Tooltip("El mecanismo al empezar a reproducir.")]
         [SerializeField] AudioClip playClip;
-        [Tooltip("Clic seco cuando apretas play sin cinta.")]
-        [SerializeField] AudioClip noTapeClip;
+
+        public bool IsOn { get; private set; }
+        bool HasTape => tapeSlot != null && tapeSlot.hasSelection;
 
         void Reset() => experience = FindFirstObjectByType<DualExperienceManager>();
+
+        void Awake()
+        {
+            if (playerMenu != null)
+                playerMenu.SetActive(false);
+        }
 
         void OnEnable()
         {
             if (tapeSlot != null)
+            {
                 tapeSlot.selectEntered.AddListener(OnTapeInserted);
+                tapeSlot.selectExited.AddListener(OnTapeRemoved);
+            }
         }
 
         void OnDisable()
         {
             if (tapeSlot != null)
+            {
                 tapeSlot.selectEntered.RemoveListener(OnTapeInserted);
+                tapeSlot.selectExited.RemoveListener(OnTapeRemoved);
+            }
         }
 
-        void OnTapeInserted(SelectEnterEventArgs args) => PlaySfx(insertClip);
+        // ---------- Ranura ----------
 
-        /// <summary>Conectar al On Press del botón.</summary>
-        public void PressPlay()
+        void OnTapeInserted(SelectEnterEventArgs args)
         {
-            bool hasTape = tapeSlot != null && tapeSlot.hasSelection;
-            if (!hasTape)
-            {
-                PlaySfx(noTapeClip);
+            PlaySfx(insertClip);
+            RefreshMenu(); // si estaba encendido, cambia de "INSERTE UNA CINTA" a "CINTA 01"
+        }
+
+        void OnTapeRemoved(SelectExitEventArgs args) => RefreshMenu();
+
+        // ---------- Botón físico ----------
+
+        /// <summary>Conectar al On Press del botón físico: enciende/apaga el reproductor.</summary>
+        public void PressPower()
+        {
+            IsOn = !IsOn;
+            PlaySfx(IsOn ? powerOnClip : powerOffClip);
+            RefreshMenu();
+        }
+
+        /// <summary>
+        /// Compatibilidad: el botón físico estaba conectado a PressPlay en la versión anterior.
+        /// Ahora hace lo mismo que PressPower, así no hay que reconectar nada.
+        /// </summary>
+        public void PressPlay() => PressPower();
+
+        // ---------- Menú de la tele ----------
+
+        /// <summary>Conectar al On Click del botón REPRODUCIR del menú de la tele.</summary>
+        public void PlayTape()
+        {
+            if (!IsOn || !HasTape)
                 return;
-            }
 
             PlaySfx(playClip);
+
+            // Apagamos el reproductor antes de entrar: así, al volver de la cinta,
+            // el menú no sigue encendido en la tele.
+            IsOn = false;
+            RefreshMenu();
+
             if (experience != null)
                 experience.EnterTape();
+        }
+
+        void RefreshMenu()
+        {
+            if (playerMenu != null)
+                playerMenu.SetActive(IsOn);
+
+            if (!IsOn)
+                return;
+
+            if (tapePanel != null) tapePanel.SetActive(HasTape);
+            if (noTapePanel != null) noTapePanel.SetActive(!HasTape);
+            if (tapeLabel != null) tapeLabel.text = tapeName;
         }
 
         void PlaySfx(AudioClip clip)
