@@ -3,17 +3,6 @@ using UnityEngine.InputSystem;
 
 namespace Tape0317.Utils
 {
-    /// <summary>
-    /// SOLO PARA PROBAR EN EL EDITOR SIN VISOR.
-    /// Mueve al jugador con el teclado usando el CharacterController del XR Origin,
-    /// así que choca con paredes y sube rampas igual que con el joystick en el Quest.
-    ///
-    /// Las teclas se eligen en el Inspector para no chocar con las del XR Interaction Simulator.
-    /// Por defecto: I/K avanzar/retroceder, J/L girar, Shift derecho correr.
-    /// En una build (Quest) se desactiva solo.
-    ///
-    /// Va en el objeto "XR Origin (XR Rig)".
-    /// </summary>
     [RequireComponent(typeof(CharacterController))]
     public class DesktopDebugMove : MonoBehaviour
     {
@@ -59,14 +48,12 @@ namespace Tape0317.Utils
             if (kb == null || head == null || !controller.enabled)
                 return;
 
-            // Girar todo el XR Origin alrededor de la cabeza del jugador (no del centro del origin).
             float turn = 0f;
             if (Pressed(kb, turnLeftKey)) turn -= 1f;
             if (Pressed(kb, turnRightKey)) turn += 1f;
             if (turn != 0f)
                 transform.RotateAround(head.position, Vector3.up, turn * turnSpeed * Time.deltaTime);
 
-            // Avanzar hacia donde mira la cámara, en horizontal.
             float forwardInput = 0f;
             if (Pressed(kb, forwardKey)) forwardInput += 1f;
             if (Pressed(kb, backKey)) forwardInput -= 1f;
@@ -78,7 +65,6 @@ namespace Tape0317.Utils
             float speed = Pressed(kb, runKey) ? runSpeed : walkSpeed;
             Vector3 move = forward * (forwardInput * speed);
 
-            // Gravedad simple para bajar rampas y no quedar flotando.
             if (controller.isGrounded && verticalVelocity < 0f)
                 verticalVelocity = -1f;
             verticalVelocity += gravity * Time.deltaTime;

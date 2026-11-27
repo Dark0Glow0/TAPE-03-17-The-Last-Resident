@@ -4,14 +4,6 @@ using UnityEngine.Events;
 
 namespace Tape0317.Tape
 {
-    /// <summary>
-    /// Reproduce un sonido JUSTO DETRÁS del jugador, esté mirando donde esté. Con audio 3D en VR
-    /// es de los sustos más efectivos: el jugador se gira por instinto.
-    ///
-    /// Opcional: muestra una "aparición" (ej. el Mimic) en ese mismo punto durante unos segundos.
-    /// Si la aparición está en una capa que solo ve la cámara VHS, solo se ve a través de ella
-    /// (mecánica tipo MADiSON).
-    /// </summary>
     public class SoundBehindPlayer : MonoBehaviour
     {
         [SerializeField] AudioClip clip;
@@ -27,7 +19,6 @@ namespace Tape0317.Tape
 
         [SerializeField] UnityEvent onPlayed;
 
-        /// <summary>Conectar desde un PlayerTrigger (ej. el del círculo ritual).</summary>
         public void Play()
         {
             Camera cam = Camera.main;
@@ -45,7 +36,6 @@ namespace Tape0317.Tape
 
             Vector3 soundPosition = head.position + back * distance;
 
-            // PlayClipAtPoint crea un AudioSource 3D temporal en ese punto y lo destruye al terminar.
             if (clip != null)
                 AudioSource.PlayClipAtPoint(clip, soundPosition, volume);
 

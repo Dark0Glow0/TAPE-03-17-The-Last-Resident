@@ -7,21 +7,6 @@ using UnityEngine.SceneManagement;
 
 namespace Tape0317.UI
 {
-    /// <summary>
-    /// Inicio y final de la demo, todo alrededor de LA TELE:
-    ///
-    ///  INICIO:  el jugador aparece "sentado" frente a la tele (TV Spawn), sin poder caminar.
-    ///           La pantalla de la tele muestra PLAY. Al apretarlo empieza el reloj y puede caminar.
-    ///           (En el GameClock hay que DESMARCAR "Auto Start").
-    ///  FINAL:   al morir o al ganar → fundido → vuelve al sillón frente a la tele → la tele muestra
-    ///           el título final + REINTENTAR / SALIR, y aparecen los objetos de "Show On End"
-    ///           (ej. la cámara VHS sobre la mesita).
-    ///  SUSTO:   lo que quieras puede llamar a QuitAfterScare (ej. el AutoHide del Mimic que se ve
-    ///           por la cámara) para cerrar el juego de golpe.
-    ///
-    /// Los menús son Canvas World Space colocados A MANO sobre la pantalla de la tele:
-    /// el script NO los mueve.
-    /// </summary>
     public class GameMenus : MonoBehaviour
     {
         [Header("Referencias")]
@@ -90,8 +75,6 @@ namespace Tape0317.UI
         {
             // El visor (o el simulador) tarda unos frames en dar la posición real de la cabeza.
             yield return new WaitForSeconds(0.2f);
-            // Al REINTENTAR, el visor recuerda cuánto caminó físicamente el jugador:
-            // lo devolvemos al sillón para que siempre empiece frente a la tele.
             TeleportTo(tvSpawn);
         }
 
@@ -108,7 +91,6 @@ namespace Tape0317.UI
 
         public void PressRestart()
         {
-            // Recarga la escena desde cero: vuelve el PLAY en la tele, reloj en 08:00, cinta en el ático.
             AudioListener.pause = false;
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
@@ -122,15 +104,12 @@ namespace Tape0317.UI
 #endif
         }
 
-        /// <summary>Para el susto final: cierra el juego tras un instante (conectar a AutoHide → On Hidden).</summary>
         public void QuitAfterScare() => Invoke(nameof(PressQuit), quitDelay);
 
         // ---------- Finales ----------
 
-        /// <summary>DeathScreen → On Finished.</summary>
         public void ShowDeathMenu() => StartCoroutine(EndRoutine(deathTitle, deathSubtitle, 0f));
 
-        /// <summary>NightDirector → On Revelation.</summary>
         public void ShowVictoryMenu() => StartCoroutine(EndRoutine(victoryTitle, victorySubtitle, victoryMenuDelay));
 
         IEnumerator EndRoutine(string title, string subtitle, float delay)
@@ -142,7 +121,6 @@ namespace Tape0317.UI
             if (delay > 0f)
                 yield return new WaitForSeconds(delay);
 
-            // En los menús no se camina: solo se apunta y se elige.
             SetLocomotion(false);
 
             if (fader != null)
@@ -151,8 +129,6 @@ namespace Tape0317.UI
             foreach (GameObject go in hideOnEnd)
                 if (go != null) go.SetActive(false);
 
-            // Por si el final llega sin haber apretado PLAY (ej. probando con los Debug):
-            // el menú de inicio está en el mismo lugar de la tele y se encimaría con el final.
             if (startMenu != null)
                 startMenu.SetActive(false);
 
@@ -177,11 +153,6 @@ namespace Tape0317.UI
                 locomotion.SetActive(on);
         }
 
-        /// <summary>
-        /// Lleva la CABEZA del jugador al punto indicado, mirando hacia su flecha azul.
-        /// (Misma técnica que el DualExperienceManager: en VR hay que mover el XR Origin
-        /// teniendo en cuenta dónde está la cámara dentro de él.)
-        /// </summary>
         void TeleportTo(Transform target)
         {
             if (target == null || xrOrigin == null)

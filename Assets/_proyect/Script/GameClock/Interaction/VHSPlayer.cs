@@ -6,22 +6,6 @@ using UnityEngine.XR.Interaction.Toolkit.Interactors;
 
 namespace Tape0317.Interaction
 {
-    /// <summary>
-    /// Reproductor VHS de la casa (v2):
-    ///  1. Metes la cinta en la ranura (socket).
-    ///  2. Aprietas el BOTÓN físico → se ENCIENDE el reproductor y la tele muestra el menú VHS.
-    ///       - Con cinta:  "CINTA 01"  +  ">> REPRODUCIR"
-    ///       - Sin cinta:  "INSERTE UNA CINTA"
-    ///     Apretar el botón otra vez → se APAGA (el menú desaparece).
-    ///  3. Apuntas a REPRODUCIR con el rayo y aprietas → entras a la cinta (DualExperienceManager).
-    ///
-    /// Montaje:
-    ///  - Ranura: XRSocketInteractor (ej. el SimpleSocket de los ejemplos).
-    ///  - Botón físico: PushButton de los ejemplos → On Press → VHSPlayer.PressPower.
-    ///  - Menú en la tele: un XR UI Canvas sobre la pantalla (como Menu_Inicio), DESACTIVADO, con:
-    ///       Panel_Cinta     → Texto "CINTA 01" (Tape Label) + Boton_Reproducir (On Click → VHSPlayer.PlayTape)
-    ///       Panel_SinCinta  → Texto "INSERTE UNA CINTA"
-    /// </summary>
     public class VHSPlayer : MonoBehaviour
     {
         [SerializeField] XRSocketInteractor tapeSlot;
@@ -88,7 +72,6 @@ namespace Tape0317.Interaction
 
         // ---------- Botón físico ----------
 
-        /// <summary>Conectar al On Press del botón físico: enciende/apaga el reproductor.</summary>
         public void PressPower()
         {
             IsOn = !IsOn;
@@ -96,15 +79,11 @@ namespace Tape0317.Interaction
             RefreshMenu();
         }
 
-        /// <summary>
-        /// Compatibilidad: el botón físico estaba conectado a PressPlay en la versión anterior.
-        /// Ahora hace lo mismo que PressPower, así no hay que reconectar nada.
-        /// </summary>
         public void PressPlay() => PressPower();
 
         // ---------- Menú de la tele ----------
 
-        /// <summary>Conectar al On Click del botón REPRODUCIR del menú de la tele.</summary>
+        
         public void PlayTape()
         {
             if (!IsOn || !HasTape)
@@ -112,8 +91,6 @@ namespace Tape0317.Interaction
 
             PlaySfx(playClip);
 
-            // Apagamos el reproductor antes de entrar: así, al volver de la cinta,
-            // el menú no sigue encendido en la tele.
             IsOn = false;
             RefreshMenu();
 

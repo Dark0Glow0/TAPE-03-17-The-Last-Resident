@@ -3,13 +3,6 @@ using UnityEngine;
 
 namespace Tape0317.Core
 {
-    /// <summary>
-    /// Fundido a negro para VR. En VR NUNCA se debe cortar de golpe ni mover al jugador con la
-    /// vista abierta: marea. Siempre: fundido a negro → mover/cambiar → fundido de vuelta.
-    ///
-    /// Montaje: Canvas (World Space) HIJO de la Main Camera del XR Origin, a 0.1 m delante,
-    /// con un Image negro que lo cubra entero y un CanvasGroup. Este script va en ese Canvas.
-    /// </summary>
     [RequireComponent(typeof(CanvasGroup))]
     public class ScreenFader : MonoBehaviour
     {
@@ -23,7 +16,6 @@ namespace Tape0317.Core
         {
             group = GetComponent<CanvasGroup>();
             group.alpha = startBlack ? 1f : 0f;
-            // El fundido nunca debe bloquear los rayos de los controles.
             group.blocksRaycasts = false;
             group.interactable = false;
         }
@@ -34,10 +26,8 @@ namespace Tape0317.Core
                 StartCoroutine(FadeIn());
         }
 
-        /// <summary>Oscurece. Úsalo con "yield return fader.FadeOut();" dentro de una corrutina.</summary>
         public IEnumerator FadeOut(float duration = -1f) => Fade(1f, duration);
 
-        /// <summary>Aclara.</summary>
         public IEnumerator FadeIn(float duration = -1f) => Fade(0f, duration);
 
         IEnumerator Fade(float target, float duration)
@@ -49,7 +39,6 @@ namespace Tape0317.Core
             float t = 0f;
             while (t < duration)
             {
-                // unscaledDeltaTime: el fundido funciona aunque alguien cambie Time.timeScale.
                 t += Time.unscaledDeltaTime;
                 group.alpha = Mathf.Lerp(start, target, t / duration);
                 yield return null;

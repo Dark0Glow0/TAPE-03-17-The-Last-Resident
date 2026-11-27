@@ -5,18 +5,6 @@ using UnityEngine.UI;
 
 namespace Tape0317.UI
 {
-    /// <summary>
-    /// Opción de menú estilo tele/videocasetera antigua:
-    /// al apuntarla con el rayo (o el mouse) aparece una FRANJA que la marca, los colores se invierten
-    /// (fondo claro, letra oscura) y un cursor ">" parpadea al lado. Al dejar de apuntarla, vuelve a la normalidad.
-    ///
-    /// Montaje en cada botón (Boton_Play, Boton_Reiniciar, Boton_Salir):
-    ///   Boton_X                 ← Button + este script
-    ///    ├── Franja             ← Image estirada (color claro o sprite del pack PSX). Raycast Target ❌
-    ///    └── Texto              ← TMP con el texto de la opción (ej. "REINTENTAR")
-    /// El "Cursor" es opcional: un Image con el sprite ">>" (o un TMP con ">") a la izquierda.
-    /// La franja también es opcional: sin ella, la marca es el cursor + el texto que se ilumina.
-    /// </summary>
     public class VHSMenuItem : MonoBehaviour,
         IPointerEnterHandler, IPointerExitHandler, ISelectHandler, IDeselectHandler
     {
@@ -51,8 +39,6 @@ namespace Tape0317.UI
 
         void OnEnable() => SetHighlighted(false, playSound: false);
 
-        // Si el menú se apaga mientras el rayo apunta a la opción, no llega el "Exit":
-        // dejamos todo apagado para que no aparezca marcada la próxima vez.
         void OnDisable() => SetHighlighted(false, playSound: false);
 
         public void OnPointerEnter(PointerEventData eventData) => SetHighlighted(true, playSound: true);
@@ -80,8 +66,7 @@ namespace Tape0317.UI
         {
             if (!highlighted || cursor == null)
                 return;
-
-            // unscaledDeltaTime: el menú funciona aunque el juego esté "pausado" con timeScale.
+ 
             blinkTimer += Time.unscaledDeltaTime;
             if (blinkTimer >= cursorBlinkSeconds)
             {

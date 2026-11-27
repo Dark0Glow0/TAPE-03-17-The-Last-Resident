@@ -2,21 +2,6 @@ using UnityEngine;
 
 namespace Tape0317.Core
 {
-    /// <summary>
-    /// Ciclo de día y noche según la hora del GameClock:
-    ///  - Mueve la luz direccional como un sol (sale ~06:00, arriba a las 12:00, se pone ~18:00).
-    ///    De noche la misma luz hace de LUNA (dirección opuesta, azul y débil).
-    ///  - Cambia color e intensidad de esa luz, la luz ambiente y el color de la niebla.
-    ///  - Opcional: enciende las lámparas de la casa al anochecer.
-    ///
-    /// Dentro de la cinta (el pasado) se puede FIJAR una hora con SetFixedHour (ej. 19 = atardecer
-    /// del video de 1998) y volver al reloj con FollowClock.
-    ///
-    /// REQUISITOS en Unity:
-    ///  - La Directional Light en modo Realtime (o Mixed). Si está "Baked", girarla no cambia nada.
-    ///  - Window → Rendering → Lighting → Environment → Environment Lighting → Source = Color
-    ///    (si no, la luz ambiente que pone este script no se aplica).
-    /// </summary>
     public class DayNightCycle : MonoBehaviour
     {
         [SerializeField] GameClock clock;
@@ -50,7 +35,6 @@ namespace Tape0317.Core
         bool useFixedHour;
         float fixedHour;
 
-        // Valores por defecto razonables al agregar el componente.
         void Reset()
         {
             clock = FindFirstObjectByType<GameClock>();
@@ -79,14 +63,12 @@ namespace Tape0317.Core
 
         // ---------- API (conectar desde eventos) ----------
 
-        /// <summary>Fija una hora (0-24) ignorando el reloj. Ej.: al entrar a la cinta → 19.</summary>
         public void SetFixedHour(float hour)
         {
             useFixedHour = true;
             fixedHour = Mathf.Repeat(hour, 24f);
         }
 
-        /// <summary>Vuelve a seguir la hora del GameClock (ej. al volver al presente).</summary>
         public void FollowClock() => useFixedHour = false;
 
         // ---------- Lógica ----------
@@ -123,9 +105,6 @@ namespace Tape0317.Core
             RenderSettings.ambientLight = Color.Lerp(ambientNight, ambientDay, day);
             RenderSettings.fogColor = Color.Lerp(fogNight, fogDay, day);
 
-            // Las lámparas se controlan cuando el reloj corre o cuando hay una hora fija (Debug, cinta,
-            // regreso). NO cuando el reloj está pausado sin hora fija: antes de PLAY, y a las 03:17
-            // durante el ataque del Mimic, que toma el control de las luces (parpadeo y apagón).
             bool manageLamps = useFixedHour || (clock != null && clock.IsRunning);
             if (nightLamps != null && manageLamps)
             {

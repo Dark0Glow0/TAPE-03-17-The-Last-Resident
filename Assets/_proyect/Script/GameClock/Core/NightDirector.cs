@@ -12,16 +12,6 @@ namespace Tape0317.Core
         Death        // el Mimic te atrapó → pantalla de derrota
     }
 
-    /// <summary>
-    /// Decide qué pasa a las 03:17 según si el jugador vio la cinta o no.
-    /// No hace sustos: solo cambia de fase y avisa. Quien reacciona es otro script
-    /// (MimicAttackSequence, la pantalla final, etc.).
-    ///
-    /// Reglas (MVP, versión simple):
-    ///  - Ver la cinta ANTES de las 03:17 → al volver, el reloj salta a 03:17 → Revelation.
-    ///  - Llegar a las 03:17 SIN verla → Attack → el Mimic entra y llama a KillPlayer() → Death.
-    ///  - A las 03:17 el reloj se detiene en ambos casos: la noche "terminó".
-    /// </summary>
     public class NightDirector : MonoBehaviour
     {
         [SerializeField] GameClock clock;
@@ -43,7 +33,6 @@ namespace Tape0317.Core
         [Tooltip("El Mimic atrapó al jugador: pantalla de muerte / 'STOP' de VHS.")]
         [SerializeField] UnityEvent onPlayerDied;
 
-        /// <summary>Para código: (nueva fase).</summary>
         public event Action<NightPhase> OnPhaseChanged;
 
         public NightPhase CurrentPhase { get; private set; } = NightPhase.Calm;
@@ -65,10 +54,6 @@ namespace Tape0317.Core
 
         // ---------- API pública ----------
 
-        /// <summary>
-        /// Lo llamará el DualExperienceManager cuando el jugador termine la experiencia de la cinta
-        /// y vuelva a la casa. Solo cuenta si todavía no son las 03:17.
-        /// </summary>
         public void NotifyTapeWatched()
         {
             if (TapeWatched || CurrentPhase != NightPhase.Calm)
@@ -77,12 +62,10 @@ namespace Tape0317.Core
             TapeWatched = true;
             Debug.Log("[NightDirector] Cinta vista a tiempo");
 
-            // SetTime lanza OnMinuteChanged(3,17) → HandleMinuteChanged → Revelation.
             if (jumpToCursedHourOnTapeWatched)
                 clock.SetTime(cursedHour, cursedMinute);
         }
 
-        /// <summary>Lo llama el Mimic cuando atrapa al jugador. Solo tiene efecto durante el ataque.</summary>
         public void KillPlayer()
         {
             if (CurrentPhase == NightPhase.Attack)
@@ -96,7 +79,6 @@ namespace Tape0317.Core
             if (CurrentPhase != NightPhase.Calm)
                 return;
 
-            // Minutos de línea de tiempo: así 03:17 (del día siguiente) es MAYOR que 20:00.
             int now = clock.ToTimelineMinutes(hour, minute);
             int cursed = clock.ToTimelineMinutes(cursedHour, cursedMinute);
 
@@ -123,7 +105,7 @@ namespace Tape0317.Core
             }
         }
 
-        // ---------- Depuración (clic derecho sobre el componente en el Inspector) ----------
+        // ---------- Depuración ----------
 
         [ContextMenu("Debug/Simular cinta vista")]
         void DebugTapeWatched() => NotifyTapeWatched();

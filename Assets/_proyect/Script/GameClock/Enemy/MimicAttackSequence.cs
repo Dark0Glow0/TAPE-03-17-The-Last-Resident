@@ -5,18 +5,6 @@ using UnityEngine;
 
 namespace Tape0317.Enemy
 {
-    /// <summary>
-    /// Secuencia del ataque del Mimic cuando llegan las 03:17 sin haber visto la cinta:
-    ///   1. Las luces parpadean y suenan ruidos raros por la casa.
-    ///   2. Apagón y silencio.
-    ///   3. El Mimic aparece en la entrada (puerta / ventana).
-    ///   4. Avanza hacia el jugador. Es un espectro: atraviesa paredes y pisos.
-    ///   5. Susto: aparece frente a la cara del jugador, grita → NightDirector.KillPlayer().
-    ///
-    /// Está hecho con una corrutina porque es una secuencia lineal (paso 1, luego 2, luego 3...).
-    /// Para la IA "de verdad" del juego completo conviene una máquina de estados, pero para la demo
-    /// esto es más simple de ajustar y de depurar.
-    /// </summary>
     public class MimicAttackSequence : MonoBehaviour
     {
         [SerializeField] NightDirector director;
@@ -83,7 +71,6 @@ namespace Tape0317.Enemy
         {
             running = true;
 
-            // La cámara del XR Origin tiene el tag MainCamera, así que Camera.main es la cabeza del jugador.
             playerHead = Camera.main != null ? Camera.main.transform : null;
 
             // ---- 1. Parpadeo de luces + ruidos ----
@@ -136,7 +123,6 @@ namespace Tape0317.Enemy
             while (chase < maxChaseSeconds)
             {
                 // Apuntamos a "los pies" que tendría alguien con los ojos a la altura del jugador.
-                // Así, si el jugador está en el ático, el Mimic sube flotando (es un espectro).
                 Vector3 target = playerHead.position + Vector3.down * mimicEyeHeight;
                 Vector3 toTarget = target - mimic.transform.position;
 

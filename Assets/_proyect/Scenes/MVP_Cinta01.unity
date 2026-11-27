@@ -1214,7 +1214,7 @@ MonoBehaviour:
   tapeName: CINTA 01
   sfx: {fileID: 0}
   insertClip: {fileID: 8300000, guid: 8a80fba3efafc7d4ea324b88e9bfa669, type: 3}
-  powerOnClip: {fileID: 0}
+  powerOnClip: {fileID: 8300000, guid: 407fcba8d3571b64bbd358b05c9c2ca9, type: 3}
   powerOffClip: {fileID: 8300000, guid: 51d8c04b4e1d0c045b82de14ed40f6cc, type: 3}
   playClip: {fileID: 8300000, guid: 40291e3e4f40ecf4ba3700d731730c12, type: 3}
 --- !u!1 &132710240
@@ -7482,7 +7482,7 @@ GameObject:
   - component: {fileID: 1026306996}
   - component: {fileID: 1026306995}
   m_Layer: 0
-  m_Name: Cube (2)
+  m_Name: Caja
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -12265,7 +12265,7 @@ MonoBehaviour:
   m_text: STOP
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 1c332682795999c46808894f1a2e7522, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_sharedMaterial: {fileID: -9165477898530856766, guid: 1c332682795999c46808894f1a2e7522, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -12857,7 +12857,7 @@ GameObject:
   - component: {fileID: 1778924048}
   - component: {fileID: 1778924047}
   m_Layer: 0
-  m_Name: Text (TMP)
+  m_Name: Hora
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

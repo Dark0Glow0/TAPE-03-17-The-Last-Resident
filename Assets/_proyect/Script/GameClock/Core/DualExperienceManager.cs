@@ -8,18 +8,6 @@ using UnityEngine.XR.Interaction.Toolkit.Interactors;
 
 namespace Tape0317.Core
 {
-    /// <summary>
-    /// Cambia entre el PRESENTE (Héctor en la casa) y el PASADO (la cinta que se está "jugando").
-    ///
-    /// Versión MVP en UNA sola escena: el presente y el pasado son dos grupos de objetos
-    /// (presentWorld / pastWorld) que se activan y desactivan. El jugador se teletransporta
-    /// con un fundido a negro. Ventajas para la demo: no hay carga de escenas ni referencias
-    /// entre escenas, y el XR Origin y los sistemas nunca se destruyen.
-    /// (Para el juego completo con 7 cintas conviene pasar a escenas aditivas.)
-    ///
-    /// IMPORTANTE: el XR Origin, [Systems] y el ScreenFader NO pueden estar dentro de
-    /// presentWorld ni de pastWorld, porque se desactivarían con ellos.
-    /// </summary>
     public class DualExperienceManager : MonoBehaviour
     {
         [Header("Referencias")]
@@ -63,7 +51,6 @@ namespace Tape0317.Core
         {
             interactionManager = FindFirstObjectByType<XRInteractionManager>();
 
-            // Estado inicial garantizado aunque en el editor quedaran los dos activos.
             if (presentWorld != null) presentWorld.SetActive(true);
             if (pastWorld != null) pastWorld.SetActive(false);
         }
@@ -75,7 +62,6 @@ namespace Tape0317.Core
             if (busy || InTape)
                 return;
 
-            // Después de las 03:17 ya no se puede entrar: la noche terminó.
             if (director != null && director.CurrentPhase != NightPhase.Calm)
                 return;
 
@@ -99,11 +85,9 @@ namespace Tape0317.Core
             if (fader != null)
                 yield return fader.FadeOut();
 
-            // El tiempo del presente no corre mientras estás dentro de la cinta.
             if (clock != null)
                 clock.Pause();
 
-            // Suelta lo que el jugador tenga en las manos ANTES de apagar el mundo (ver ReleaseHeldObjects).
             ReleaseHeldObjects(presentWorld);
             SwapWorlds(toPast: true);
             Teleport(pastSpawn);
@@ -136,9 +120,6 @@ namespace Tape0317.Core
             if (fader != null)
                 yield return fader.FadeIn();
 
-            // ORDEN IMPORTANTE: primero reanudamos el reloj y DESPUÉS avisamos que se vio la cinta.
-            // NotifyTapeWatched salta a las 03:17 y ahí el director vuelve a pausar el reloj;
-            // si lo hiciéramos al revés, este Resume lo volvería a poner en marcha.
             if (clock != null)
                 clock.Resume();
             if (director != null)
@@ -147,15 +128,7 @@ namespace Tape0317.Core
             busy = false;
         }
 
-        /// <summary>
-        /// Obliga al jugador a soltar todo lo que tenga agarrado.
-        ///
-        /// Por qué: mientras un objeto está agarrado, XRI lo saca de su carpeta (ej. Pasado_cinta) y lo deja
-        /// suelto en la raíz de la escena. Si apagamos el mundo así, el objeto NO se apaga con él y el
-        /// jugador "se lo lleva" al otro mundo. Al soltarlo aquí, con el mundo todavía activo, XRI lo
-        /// devuelve a su carpeta (Retain Transform Parent) y después se apaga junto con ella.
-        /// Funciona con cualquier objeto agarrable, sin conectar eventos a mano.
-        /// </summary>
+        
         void ReleaseHeldObjects(GameObject outgoingWorld)
         {
             if (xrOrigin == null)
@@ -164,25 +137,23 @@ namespace Tape0317.Core
                 return;
             }
 
-            // El XR Interaction Manager lo crea XRI en tiempo de ejecución (aparece en DontDestroyOnLoad),
-            // a veces DESPUÉS de nuestro Awake. Por eso lo buscamos aquí, en el momento de usarlo.
+           
             if (interactionManager == null)
                 interactionManager = FindFirstObjectByType<XRInteractionManager>();
 
-            // 1) Anotamos qué tenía el jugador en las manos.
+           
             var held = new List<Transform>();
             var interactors = xrOrigin.GetComponentsInChildren<IXRSelectInteractor>();
             foreach (IXRSelectInteractor interactor in interactors)
                 foreach (UnityEngine.XR.Interaction.Toolkit.Interactables.IXRSelectInteractable selected in interactor.interactablesSelected)
                     held.Add(selected.transform);
 
-            // 2) Lo soltamos. (Todos los "agarradores": manos, rayos, poke...)
+           
             foreach (IXRSelectInteractor interactor in interactors)
             {
                 if (!interactor.hasSelection)
                     continue;
 
-                // Si aun así no lo encontramos, usamos el manager que tiene la propia mano.
                 XRInteractionManager manager = interactionManager;
                 if (manager == null && interactor is XRBaseInteractor baseInteractor)
                     manager = baseInteractor.interactionManager;
@@ -193,10 +164,7 @@ namespace Tape0317.Core
                     Debug.LogWarning($"[Dual] No encontré XR Interaction Manager para soltar desde {interactor.transform.name}.");
             }
 
-            // 3) A prueba de balas: XRI no siempre devuelve el objeto a su carpeta al soltarlo
-            //    (a veces lo deja suelto en la raíz de la escena). Si quedó suelto, lo metemos
-            //    nosotros en el mundo que se va a apagar, para que se apague con él y no
-            //    "viaje" con el jugador al otro mundo.
+           
             if (outgoingWorld == null)
                 return;
 
@@ -213,17 +181,13 @@ namespace Tape0317.Core
             if (pastWorld != null) pastWorld.SetActive(toPast);
         }
 
-        /// <summary>
-        /// Mueve al jugador para que su CABEZA quede sobre el punto y mirando hacia su forward.
-        /// No basta con mover el XR Origin: en VR la cámara está desplazada dentro del origin
-        /// (el jugador se movió físicamente por su habitación), por eso usamos las funciones de XROrigin.
-        /// </summary>
+       
         void Teleport(Transform target)
         {
             if (target == null || xrOrigin == null)
                 return;
 
-            // El CharacterController "pelea" con los cambios directos de posición: lo apagamos un momento.
+           
             var controller = xrOrigin.GetComponent<CharacterController>();
             bool hadController = controller != null && controller.enabled;
             if (hadController)

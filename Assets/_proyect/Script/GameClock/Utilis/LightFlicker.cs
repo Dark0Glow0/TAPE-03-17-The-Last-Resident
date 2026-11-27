@@ -3,13 +3,6 @@ using UnityEngine;
 
 namespace Tape0317.Utils
 {
-    /// <summary>
-    /// Hace parpadear una o varias luces durante unos segundos y las deja como estaban.
-    /// Parpadea cambiando la INTENSIDAD (no apagando la luz): así no pelea con el DayNightCycle,
-    /// que enciende y apaga las lámparas según la hora.
-    /// Reutilizable: Revelation, sustos, cuando el Mimic está cerca...
-    /// Conectar desde cualquier evento a LightFlicker → Flicker().
-    /// </summary>
     public class LightFlicker : MonoBehaviour
     {
         [SerializeField] Light[] lights;
@@ -27,7 +20,6 @@ namespace Tape0317.Utils
 
         IEnumerator Run()
         {
-            // Guardamos la intensidad original para dejarlas igual al terminar.
             var original = new float[lights.Length];
             for (int i = 0; i < lights.Length; i++)
                 original[i] = lights[i] != null ? lights[i].intensity : 0f;

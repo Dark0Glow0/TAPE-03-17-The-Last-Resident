@@ -6,19 +6,6 @@ using UnityEngine.XR.Interaction.Toolkit.Interactables;
 
 namespace Tape0317.Interaction
 {
-    /// <summary>
-    /// Cámara VHS de mano (estilo MADiSON):
-    ///  - Al AGARRARLA (grip) se enciende y la pantallita muestra lo que ve el lente.
-    ///  - Con el GATILLO (trigger) empieza/detiene la grabación ("REC" rojo parpadeando).
-    ///  - La pantalla tiene look VHS: grano animado, fecha/hora de los 90 y "tirones" de tracking.
-    ///  - ExtraGlitch (0..1) lo pueden subir otros scripts cerca de algo paranormal.
-    ///
-    /// Cómo funciona por dentro: una segunda Camera (el "lente") renderiza a una RenderTexture
-    /// de baja resolución, y un RawImage en la pantallita muestra esa textura.
-    ///
-    /// RENDIMIENTO EN QUEST: una cámara extra es cara. Por eso: resolución baja (320x240, que
-    /// además se ve más VHS), solo renderiza cuando está encendida, y cada N frames.
-    /// </summary>
     [RequireComponent(typeof(XRGrabInteractable))]
     public class VHSCamcorder : MonoBehaviour
     {
@@ -60,14 +47,13 @@ namespace Tape0317.Interaction
         public bool IsOn { get; private set; }
         public bool IsRecording { get; private set; }
 
-        /// <summary>0..1: más interferencia. Lo puede subir el Mimic o un trigger cerca del ritual.</summary>
         public float ExtraGlitch { get; set; }
 
         XRGrabInteractable grab;
         RenderTexture renderTexture;
         Texture2D noiseTexture;
 
-        float onSeconds;        // tiempo encendida (para el reloj de la pantalla)
+        float onSeconds;      
         int lastShownSecond = -1;
         float blinkTimer;
         bool blinkVisible = true;
@@ -77,15 +63,13 @@ namespace Tape0317.Interaction
         {
             grab = GetComponent<XRGrabInteractable>();
 
-            // RenderTexture creada por código: así la resolución se cambia desde el Inspector
-            // y no hay que crear el asset a mano.
             renderTexture = new RenderTexture(resolution.x, resolution.y, 16) { name = "VHSCamcorder_RT" };
             renderTexture.Create();
 
             if (lensCamera != null)
             {
                 lensCamera.targetTexture = renderTexture;
-                lensCamera.enabled = false; // LateUpdate decide cuándo renderiza
+                lensCamera.enabled = false; 
             }
 
             if (feed != null)
@@ -168,7 +152,7 @@ namespace Tape0317.Interaction
             if (on && playSound)
                 PlaySfx(powerOnClip);
 
-            lastShownSecond = -1; // fuerza a redibujar la hora
+            lastShownSecond = -1;
             RefreshRecLabel();
         }
 
@@ -197,7 +181,7 @@ namespace Tape0317.Interaction
         {
             int second = Mathf.FloorToInt(onSeconds);
             if (timestampLabel == null || second == lastShownSecond)
-                return; // solo creamos el string una vez por segundo (evita basura para el GC)
+                return;
 
             lastShownSecond = second;
             int total = startHour * 3600 + startMinute * 60 + second;
@@ -230,8 +214,6 @@ namespace Tape0317.Interaction
             if (recLabel == null)
                 return;
 
-            // Sin símbolos raros: la fuente por defecto de TMP no trae "●" y saldría un cuadrado.
-            // Para el punto rojo, pon una Image circular roja al lado del texto.
             recLabel.text = IsRecording ? "REC" : "STBY";
             recLabel.color = IsRecording ? new Color(1f, 0.15f, 0.15f) : Color.white;
             recLabel.enabled = true;
@@ -244,8 +226,6 @@ namespace Tape0317.Interaction
             if (noiseOverlay == null)
                 return;
 
-            // Movemos la textura de ruido a un lugar aleatorio cada frame: grano "vivo" gratis.
-            // El 5 y el 4 repiten la textura para que el grano sea fino.
             noiseOverlay.uvRect = new Rect(Random.value, Random.value, 5f, 4f);
         }
 
@@ -276,7 +256,7 @@ namespace Tape0317.Interaction
             var tex = new Texture2D(size, size, TextureFormat.RGBA32, false)
             {
                 name = "VHS_Noise",
-                filterMode = FilterMode.Point,  // píxeles duros, como el grano de una cinta
+                filterMode = FilterMode.Point,
                 wrapMode = TextureWrapMode.Repeat
             };
 

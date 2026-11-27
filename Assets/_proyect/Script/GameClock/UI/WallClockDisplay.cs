@@ -4,14 +4,6 @@ using UnityEngine;
 
 namespace Tape0317.UI
 {
-    /// <summary>
-    /// Muestra la hora del GameClock en un texto: el reloj de pared, la esquina de los menús VHS, etc.
-    /// No consulta la hora en cada Update: solo se actualiza cuando el reloj avisa que cambió el minuto.
-    ///
-    /// Formatos:
-    ///  - Digital24: "14:41"  (reloj de pared)
-    ///  - VHS:       "PM 2:41" (esquina de la videocasetera)
-    /// </summary>
     public class WallClockDisplay : MonoBehaviour
     {
         public enum ClockFormat { Digital24, VHS }
@@ -25,22 +17,18 @@ namespace Tape0317.UI
 
         void Reset()
         {
-            // Reset se llama al agregar el componente en el editor: intenta autoasignar referencias.
             label = GetComponentInChildren<TMP_Text>();
             clock = FindFirstObjectByType<GameClock>();
         }
 
         void OnEnable()
         {
-            // Suscribirse en OnEnable y desuscribirse en OnDisable es el patrón estándar:
-            // si este objeto se desactiva o destruye, el reloj no intentará llamarlo.
+
             if (clock == null)
                 return;
 
             clock.OnMinuteChanged += Show;
 
-            // Mostramos la hora actual apenas se enciende (ej. al prender el menú del reproductor
-            // a mitad del juego), sin esperar al próximo cambio de minuto.
             Show(clock.CurrentHour, clock.CurrentMinute);
         }
 
@@ -52,8 +40,6 @@ namespace Tape0317.UI
 
         void Start()
         {
-            // Por si nos suscribimos antes de que el reloj inicializara su hora
-            // (depende del orden en que Unity inicializa los objetos).
             if (clock != null)
                 Show(clock.CurrentHour, clock.CurrentMinute);
         }

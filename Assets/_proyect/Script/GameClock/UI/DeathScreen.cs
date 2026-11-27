@@ -5,13 +5,6 @@ using UnityEngine.Events;
 
 namespace Tape0317.UI
 {
-    /// <summary>
-    /// Pantalla de muerte estilo VHS: corte seco a negro con "STOP" parpadeando, como una cinta detenida.
-    /// Después de unos segundos se oculta y lanza On Finished (ej. mostrar el menú final).
-    ///
-    /// Montaje: va en el Canvas "Pantalla_Muerte" (hijo de la Main Camera), que empieza
-    /// DESACTIVADO. Se activa desde NightDirector → On Player Died → SetActive(true).
-    /// </summary>
     public class DeathScreen : MonoBehaviour
     {
         [Tooltip("Texto principal (STOP). Opcional: si está, parpadea como en un VHS.")]
@@ -32,8 +25,6 @@ namespace Tape0317.UI
 
         void OnEnable()
         {
-            // Silencio total menos este sonido: corta la respiración del Mimic, ruidos, etc.
-            // AudioListener.pause detiene todos los AudioSource; el nuestro usa ignoreListenerPause.
             AudioListener.pause = true;
             if (sfx != null)
             {
@@ -47,7 +38,6 @@ namespace Tape0317.UI
 
         void OnDisable()
         {
-            // Nunca dejar el audio pausado si este objeto se apaga o se recarga la escena.
             AudioListener.pause = false;
         }
 
@@ -58,7 +48,6 @@ namespace Tape0317.UI
 
             while (t < showSeconds)
             {
-                // unscaledDeltaTime: funciona aunque alguien haya cambiado Time.timeScale.
                 t += Time.unscaledDeltaTime;
                 blink += Time.unscaledDeltaTime;
 
